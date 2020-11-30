@@ -5,13 +5,13 @@ from ..lib.cdc import ResetSynchronizer
 from ..build import *
 
 
-__all__ = ["XilinxSpartan3APlatform", "XilinxSpartan6Platform"]
+__all__ = ["XilinxSpartan3APlatform", "XilinxSpartan6Platform", "XilinxVirtex5Platform"]
 
 
 # The interface to Spartan 3 and 6 are substantially the same. Handle
 # differences internally using one class and expose user-aliases for
 # convenience.
-class XilinxSpartan3Or6Platform(TemplatedPlatform):
+class XilinxSpartan3Or6OrVirtex5Platform(TemplatedPlatform):
     """
     Required tools:
         * ISE toolchain:
@@ -80,6 +80,8 @@ class XilinxSpartan3Or6Platform(TemplatedPlatform):
                                            as a nMigen platform.""")
         elif device.startswith("XC6S"):
             return "6"
+        elif device.startswith("XC5V"):
+            return "5V"
         else:
             assert False
 
@@ -189,8 +191,9 @@ class XilinxSpartan3Or6Platform(TemplatedPlatform):
         #   * https://www.xilinx.com/support/answers/44174.html
         #   * https://www.xilinx.com/support/documentation/white_papers/wp272.pdf
         if self.family != "6":
-            # Spartan 3 lacks a STARTUP primitive with EOS output; use a simple ResetSynchronizer
+            # Spartan 3 and Virtex 5 lack a STARTUP primitive with EOS output; use a simple ResetSynchronizer
             # in that case, as is the default.
+            # however, the Virtex 5 does have DCM primitives that could be used instead
             return super().create_missing_domain(name)
 
         if name == "sync" and self.default_clk is not None:
@@ -462,5 +465,6 @@ class XilinxSpartan3Or6Platform(TemplatedPlatform):
 
         return m
 
-XilinxSpartan3APlatform = XilinxSpartan3Or6Platform
-XilinxSpartan6Platform = XilinxSpartan3Or6Platform
+XilinxSpartan3APlatform = XilinxSpartan3Or6OrVirtex5Platform
+XilinxSpartan6Platform = XilinxSpartan3Or6OrVirtex5Platform
+XilinxVirtex5Platform = XilinxSpartan3Or6OrVirtex5Platform
