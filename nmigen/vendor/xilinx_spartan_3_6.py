@@ -190,10 +190,9 @@ class XilinxSpartan3Or6OrVirtex5Platform(TemplatedPlatform):
         # signal (if available). For details, see:
         #   * https://www.xilinx.com/support/answers/44174.html
         #   * https://www.xilinx.com/support/documentation/white_papers/wp272.pdf
-        if self.family != "6":
-            # Spartan 3 and Virtex 5 lack a STARTUP primitive with EOS output; use a simple ResetSynchronizer
+        if self.family == "3A":
+            # Spartan 3 lacks a STARTUP primitive with EOS output; use a simple ResetSynchronizer
             # in that case, as is the default.
-            # however, the Virtex 5 does have DCM primitives that could be used instead
             return super().create_missing_domain(name)
 
         if name == "sync" and self.default_clk is not None:
@@ -203,7 +202,13 @@ class XilinxSpartan3Or6OrVirtex5Platform(TemplatedPlatform):
 
             m = Module()
             eos = Signal()
-            m.submodules += Instance("STARTUP_SPARTAN6", o_EOS=eos)
+            # The Virtex 5 and Spartan 6 startup primtives are almost identical
+            # Spartan 6 has an extra KEYCLEARB input
+            # V5 has some additional user clock inputs and outputs
+            if self.family == "6":
+                m.submodules += Instance("STARTUP_SPARTAN6", o_EOS=eos)
+            elif self.family == "5V":
+                m.submodules += Instance("STARTUP_VIRTEX5", o_EOS=eos)
             m.domains += ClockDomain("sync", reset_less=self.default_rst is None)
             m.submodules += Instance("BUFGCE", i_CE=eos, i_I=clk_i, o_O=ClockSignal("sync"))
             if self.default_rst is not None:
