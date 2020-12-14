@@ -69,20 +69,10 @@ class XilinxSpartan3Or6OrVirtex5Platform(TemplatedPlatform):
     @property
     def family(self):
         device = self.device.upper()
-        if device.startswith("XC3S"):
-            if device.endswith("A"):
-                return "3A"
-            elif device.endswith("E"):
-                raise NotImplementedError("""Spartan 3E family is not supported
-                                           as a nMigen platform.""")
-            else:
-                raise NotImplementedError("""Spartan 3 family is not supported
-                                           as a nMigen platform.""")
-        elif device.startswith("XC6S"):
-            return "6"
-        elif device.startswith("XC5V"):
+        if device.startswith("XC5V"):
             return "5V"
         else:
+            raise NotImplementedError("This code is butchered. V5 only")
             assert False
 
     file_templates = {
@@ -205,9 +195,7 @@ class XilinxSpartan3Or6OrVirtex5Platform(TemplatedPlatform):
             # The Virtex 5 and Spartan 6 startup primtives are almost identical
             # Spartan 6 has an extra KEYCLEARB input
             # V5 has some additional user clock inputs and outputs
-            if self.family == "6":
-                m.submodules += Instance("STARTUP_SPARTAN6", o_EOS=eos)
-            elif self.family == "5V":
+            if self.family == "5V":
                 m.submodules += Instance("STARTUP_VIRTEX5", o_EOS=eos)
             m.domains += ClockDomain("sync", reset_less=self.default_rst is None)
             m.submodules += Instance("BUFGCE", i_CE=eos, i_I=clk_i, o_O=ClockSignal("sync"))
@@ -228,29 +216,29 @@ class XilinxSpartan3Or6OrVirtex5Platform(TemplatedPlatform):
                     o_Q=q[bit]
                 )
 
-        def get_iddr(clk, d, q0, q1):
-            for bit in range(len(q0)):
-                m.submodules += Instance("IDDR2",
-                    p_DDR_ALIGNMENT="C0",
+        def get_iddr(clk, d, q1, q2):
+            for bit in range(len(q1)):
+                m.submodules += Instance("IDDR",
+                    p_DDR_CLK_EDGE="SAME_EDGE_PIPELINED",
                     p_SRTYPE="ASYNC",
-                    p_INIT_Q0=0, p_INIT_Q1=0,
-                    i_C0=clk, i_C1=~clk,
+                    p_INIT_Q1=0, p_INIT_Q2=0,
+                    i_C=clk,
                     i_CE=Const(1),
                     i_S=Const(0), i_R=Const(0),
                     i_D=d[bit],
-                    o_Q0=q0[bit], o_Q1=q1[bit]
+                    o_Q1=q1[bit], o_Q2=q2[bit]
                 )
 
-        def get_oddr(clk, d0, d1, q):
+        def get_oddr(clk, d1, d2, q):
             for bit in range(len(q)):
-                m.submodules += Instance("ODDR2",
-                    p_DDR_ALIGNMENT="C0",
+                m.submodules += Instance("ODDR",
+                    p_DDR_CLK_EDGE="SAME_EDGE",
                     p_SRTYPE="ASYNC",
                     p_INIT=0,
-                    i_C0=clk, i_C1=~clk,
+                    i_C=clk,
                     i_CE=Const(1),
                     i_S=Const(0), i_R=Const(0),
-                    i_D0=d0[bit], i_D1=d1[bit],
+                    i_D1=d1[bit], i_D2=d2[bit],
                     o_Q=q[bit]
                 )
 
